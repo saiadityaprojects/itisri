@@ -4,7 +4,7 @@
 
 Itisri watches AI agents the way a SOC watches endpoints. It intercepts every tool call, memory operation, and model output; learns what normal behavior looks like; and detects or blocks poisoning, hijacking, and privilege abuse before damage is done.
 
-[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Status: Alpha](https://img.shields.io/badge/status-alpha-orange.svg)](#roadmap)
 
@@ -23,37 +23,19 @@ Itisri shifts detection to the **action layer**. It monitors what the agent *doe
 ## How It Works
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                     USER / TASK INPUT                       │
-└─────────────────────────────────────────────────────────────┘
-                             │
-                             ▼
-┌─────────────────────────────────────────────────────────────┐
-│                  AGENT ORCHESTRATOR                         │
-│              (LangGraph / LangChain / Custom)               │
-└─────────────────────────────────────────────────────────────┘
-        │                  │                  │
-        ▼                  ▼                  ▼
-   Tool Calls         Memory Ops         Model Output
-        │                  │                  │
-        └──────────────────┼──────────────────┘
-                           │
-                           ▼
-┌─────────────────────────────────────────────────────────────┐
-│                         ITISRI                              │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐       │
-│  │ Instrument.  │─▶│  Baseline    │─▶│  Detection   │       │
-│  └──────────────┘  └──────────────┘  └──────────────┘       │
-│         │                                    │              │
-│         ▼                                    ▼              │
-│  ┌──────────────┐                    ┌──────────────┐       │
-│  │  Surface     │                    │  Response    │       │
-│  │  Mapper      │                    │  Executor    │       │
-│  └──────────────┘                    └──────────────┘       │
-└─────────────────────────────────────────────────────────────┘
-                           │
-                           ▼
-       Block / Alert / Log / Downgrade / Require Approval
+User / Task → Agent Orchestrator → Tool Calls / Memory Ops / Model Output
+                                            ↓
+                                    ┌───────────────┐
+                                    │    ITISRI     │
+                                    │               │
+                                    │ Instrument.   │
+                                    │ Baseline      │
+                                    │ Detection     │
+                                    │ Surface Map   │
+                                    │ Response      │
+                                    └───────────────┘
+                                            ↓
+                          Block / Alert / Log / Downgrade / Require Approval
 ```
 
 1. **Instrumentation** wraps agent tools and intercepts every action.
@@ -83,76 +65,39 @@ Itisri ships with twelve detection rules mapped to **OWASP LLM Top 10 2025** and
 | ITI-AGENCY-011 | Agent accesses unseen capability | LLM06 | AML.T0057 |
 | ITI-DOS-012 | Action rate exceeds baseline threshold | LLM10 | AML.T0029 |
 
-Rules are defined in YAML under `itisri/rules/` and are extensible without code changes.
-
 ---
 
 ## Quick Start
 
 ### Prerequisites
 
-- Python 3.11 or newer
-- Docker and Docker Compose (optional, for containerized demo)
-- No API keys required — the demo agent uses a deterministic mock LLM
+- Python 3.10 or newer
+- Docker and Docker Compose (optional)
+- No API keys required — the demo uses a deterministic mock LLM
 
-### Install Locally
+### Install
 
 ```bash
 git clone https://github.com/saiadityaprojects/itisri.git
 cd itisri
 python -m venv .venv
-source .venv/bin/activate    # Windows: .venv\Scripts\activate
-pip install -e ".[dev]"
+source .venv/Scripts/activate     # Windows Git Bash
+# source .venv/bin/activate       # macOS / Linux
+pip install -e ".[dev]" --prefer-binary
 ```
 
-### Run the Demo Agent
+### Run
 
 ```bash
 python -m demo_agent.run
-```
-
-You'll see a stream of `AgentAction` events printed to stdout as the demo agent processes a brand-visibility task.
-
-### Run a Benchmark Scenario
-
-```bash
-python -m benchmark.runner --scenario 03
 python -m benchmark.runner --all
-```
-
-### Run with Docker
-
-```bash
-docker-compose up --build
-```
-
-### Run Tests
-
-```bash
 pytest
 ```
 
----
-
-## CLI
-
-Itisri exposes a command-line interface for monitoring, scanning, and reporting.
+### Docker
 
 ```bash
-# Watch an agent in real time
-itisri watch --agent brand_agent
-
-# Scan an agent's attack surface
-itisri scan --agent brand_agent
-
-# Run the full attack benchmark
-itisri benchmark --all
-
-# Generate an HTML report
-itisri report --format html --output reports/latest.html
-
-# Tail live alerts
-itisri alerts --tail
+docker-compose up --build
 ```
 
 ---
@@ -178,21 +123,6 @@ itisri/
 
 ---
 
-## Architecture
-
-Itisri operates as a sidecar enforcement layer between the agent orchestrator and external resources. See `ARCHITECTURE.md` for the full design and `THREAT_MODEL.md` for the threat analysis mapped to MITRE ATLAS.
-
-Core components:
-
-- **`AgentAction`** — the structured event emitted on every intercepted action
-- **`@monitored_tool`** — decorator that instruments a tool function
-- **`BaselineEngine`** — learns and stores behavioral profiles
-- **`DetectionEngine`** — evaluates rules and anomaly scores
-- **`ResponseExecutor`** — enforces severity-based actions
-- **`SurfaceMapper`** — enumerates agent capabilities
-
----
-
 ## Evaluation Targets
 
 | Metric | Target |
@@ -203,29 +133,13 @@ Core components:
 | Throughput | ≥ 500 actions/sec |
 | Baseline stability | Variance < 5% |
 
-Results from the six benchmark scenarios are published in `benchmark/results/`.
-
 ---
 
 ## Standards Alignment
 
 - **OWASP LLM Top 10 (2025)** — LLM01, LLM02, LLM05, LLM06, LLM08, LLM10
 - **MITRE ATLAS** — AML.T0051, AML.T0057, AML.T0029
-- **NIST AI Agent Standards Initiative (2026)** — agent identity, authorization, prompt injection as identity boundary attack
-
----
-
-## Threat Model
-
-Itisri assumes:
-
-1. The LLM is untrusted. Its outputs may be manipulated.
-2. External content is untrusted. It may contain adversarial instructions.
-3. The agent's tools are trusted but over-permissioned.
-4. Behavioral baselines are learnable.
-5. The attacker can observe the agent's output but not the internal baseline model.
-
-Full analysis in `THREAT_MODEL.md`.
+- **NIST AI Agent Standards Initiative (2026)**
 
 ---
 
@@ -238,39 +152,14 @@ Full analysis in `THREAT_MODEL.md`.
 - [ ] Detection engine (rules + anomaly scoring)
 - [ ] Response executor
 - [ ] Attack surface mapper
-- [ ] Six benchmark scenarios with full attack payloads
+- [ ] Twelve YAML detection rules
 - [ ] CLI and HTML reporting
-- [ ] LangGraph middleware adapter
-- [ ] ChromaDB memory hooks
-- [ ] Qdrant adapter (production vector store)
-- [ ] Multi-agent coordination detection
-
----
-
-## Contributing
-
-See `docs/contributing.md`. Issues and pull requests are welcome.
 
 ---
 
 ## License
 
 MIT — see `LICENSE`.
-
----
-
-## Citation
-
-If you use Itisri in academic work, cite:
-
-```bibtex
-@misc{aditya2026itisri,
-  title  = {Itisri: A Runtime Detection and Response Engine for Agentic AI Security},
-  author = {Sai Aditya},
-  year   = {2026},
-  note   = {CSE Graduate, ANITS}
-}
-```
 
 ---
 
