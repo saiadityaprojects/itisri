@@ -14,7 +14,7 @@ Itisri watches AI agents the way a SOC watches endpoints. It intercepts every to
 
 Modern LLM agents retrieve web content, query databases, call APIs, and assemble outputs. This creates an attack surface that traditional security tools do not monitor. The defining vulnerability is **indirect prompt injection (IPI)**: an adversary embeds malicious instructions in content the agent retrieves during normal operation, and the agent executes them as if they came from its operator.
 
-Existing defenses operate at the **content layer** — they try to classify whether text is malicious. This is a probabilistic, evadable task. Published benchmarks show system-prompt guardrails fail against **62%** of structured IPI payloads, and LLM-as-judge classifiers reduce attack success rate to **14%** at a latency cost of **182ms** per inference.
+Existing defenses operate at the **content layer** — they try to classify whether text is malicious. This is a probabilistic, evadable task. Published benchmarks show system-prompt guardrails fail against **62%** of structured IPI payloads, and LLM-as-judge classifiers reduce attack success rate to **14%** at a latency cost of **182 ms** per inference.
 
 Itisri shifts detection to the **action layer**. It monitors what the agent *does*, not what it *reads*. Behavior is observable. Baselines are learnable. Deviations are measurable. Enforcement is deterministic.
 
@@ -92,13 +92,13 @@ Rules are defined in YAML under `itisri/rules/` and are extensible without code 
 ### Prerequisites
 
 - Python 3.11 or newer
-- Docker and Docker Compose (for the containerized demo)
-- No API keys required — the demo agent uses a mock LLM
+- Docker and Docker Compose (optional, for containerized demo)
+- No API keys required — the demo agent uses a deterministic mock LLM
 
 ### Install Locally
 
 ```bash
-git clone https://github.com/<your-username>/itisri.git
+git clone https://github.com/saiadityaprojects/itisri.git
 cd itisri
 python -m venv .venv
 source .venv/bin/activate    # Windows: .venv\Scripts\activate
@@ -113,19 +113,18 @@ python -m demo_agent.run
 
 You'll see a stream of `AgentAction` events printed to stdout as the demo agent processes a brand-visibility task.
 
+### Run a Benchmark Scenario
+
+```bash
+python -m benchmark.runner --scenario 03
+python -m benchmark.runner --all
+```
+
 ### Run with Docker
 
 ```bash
 docker-compose up --build
 ```
-
-### Run the Benchmark
-
-```bash
-python -m benchmark.runner --all
-```
-
-This executes six attack scenarios against the demo agent and reports detection results.
 
 ### Run Tests
 
@@ -200,7 +199,7 @@ Core components:
 |---|---|
 | True Positive Rate | ≥ 85% |
 | False Positive Rate | ≤ 5% |
-| Per-action overhead | ≤ 50ms |
+| Per-action overhead | ≤ 50 ms |
 | Throughput | ≥ 500 actions/sec |
 | Baseline stability | Variance < 5% |
 
@@ -234,11 +233,12 @@ Full analysis in `THREAT_MODEL.md`.
 
 - [x] Project skeleton and core event schema
 - [x] Instrumentation layer with `@monitored_tool`
+- [x] Demo agent and benchmark scaffolding
 - [ ] Baseline engine (Isolation Forest + Markov)
 - [ ] Detection engine (rules + anomaly scoring)
 - [ ] Response executor
 - [ ] Attack surface mapper
-- [ ] Six benchmark scenarios
+- [ ] Six benchmark scenarios with full attack payloads
 - [ ] CLI and HTML reporting
 - [ ] LangGraph middleware adapter
 - [ ] ChromaDB memory hooks
@@ -278,3 +278,4 @@ If you use Itisri in academic work, cite:
 
 **Sai Aditya**
 CSE Graduate, ANITS
+GitHub: [@saiadityaprojects](https://github.com/saiadityaprojects)
